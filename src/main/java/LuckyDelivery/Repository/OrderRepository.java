@@ -1,6 +1,6 @@
-package LuckyDelivery.repository;
+package LuckyDelivery.Repository;
 
-import LuckyDelivery.model.Order;
+import LuckyDelivery.Model.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

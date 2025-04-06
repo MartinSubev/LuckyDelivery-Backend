@@ -1,7 +1,7 @@
-package LuckyDelivery.service;
+package LuckyDelivery.Service;
 
-import LuckyDelivery.model.Order;
-import LuckyDelivery.repository.OrderRepository;
+import LuckyDelivery.Model.Order;
+import LuckyDelivery.Repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

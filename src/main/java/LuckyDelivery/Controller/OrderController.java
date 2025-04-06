@@ -1,7 +1,7 @@
-package LuckyDelivery.controller;
+package LuckyDelivery.Controller;
 
-import LuckyDelivery.model.Order;
-import LuckyDelivery.service.OrderService;
+import LuckyDelivery.Model.Order;
+import LuckyDelivery.Service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
