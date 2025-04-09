@@ -15,7 +15,10 @@ public class Restaurant {
     @Column(name = "address", nullable = false, columnDefinition = "TEXT")
     private String address;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "telephone", length = 20) // 🔹 New field
+    private String telephone;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "employee_id", nullable = false)
     private User employee;
 
@@ -44,6 +47,14 @@ public class Restaurant {
         this.address = address;
     }
 
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
     public User getEmployee() {
         return employee;
     }
@@ -51,5 +62,4 @@ public class Restaurant {
     public void setEmployee(User employee) {
         this.employee = employee;
     }
-
 }
