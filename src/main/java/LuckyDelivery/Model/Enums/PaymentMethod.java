@@ -1,4 +1,4 @@
-package LuckyDelivery.model.enums;
+package LuckyDelivery.Model.Enums;
 
 public enum PaymentMethod {
     CASH,     // Плащане в брой

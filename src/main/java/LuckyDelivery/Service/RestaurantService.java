@@ -21,4 +21,20 @@ public class RestaurantService {
         return restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
     }
+
+    public Restaurant createRestaurant(Restaurant restaurant) {
+        return restaurantRepository.save(restaurant);
+    }
+
+    public Restaurant updateRestaurant(Long id, Restaurant updated) {
+        Restaurant existing = getRestaurantById(id);
+        existing.setName(updated.getName());
+        existing.setAddress(updated.getAddress());
+        existing.setEmployee(updated.getEmployee());
+        return restaurantRepository.save(existing);
+    }
+
+    public void deleteRestaurant(Long id) {
+        restaurantRepository.deleteById(id);
+    }
 }

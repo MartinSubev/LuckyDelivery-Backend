@@ -1,4 +1,4 @@
-package LuckyDelivery.model.enums;
+package LuckyDelivery.Model.Enums;
 
 public enum OrderStatus {
     PENDING,          // Поръчката е в процес на обработка
