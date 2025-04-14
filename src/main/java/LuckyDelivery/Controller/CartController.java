@@ -3,14 +3,15 @@ package LuckyDelivery.Controller;
 import LuckyDelivery.Model.Cart;
 import LuckyDelivery.Service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173") // Update with your frontend port
 @RestController
-@RequestMapping("/cart")
+@RequestMapping("/api/cart") // More standard API path
 public class CartController {
 
     @Autowired
@@ -23,14 +24,36 @@ public class CartController {
         return ResponseEntity.ok(cartItems);
     }
 
+    // POST: Add a product to the user's cart
+    @PostMapping("/add")
+    public ResponseEntity<Cart> addToCart(@RequestBody Cart cartItem) {
+        Cart addedItem = cartService.addItemToCart(cartItem);
+        if (addedItem != null) {
+            return new ResponseEntity<>(addedItem, HttpStatus.CREATED);
+        } else {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR); // Or a more specific error
+        }
+    }
+
+    // PUT: Update the quantity of an item in the cart
+    @PutMapping("/update/{cartItemId}")
+    public ResponseEntity<Cart> updateCartItemQuantity(@PathVariable Integer cartItemId, @RequestBody Cart updatedCartItem) {
+        Cart updatedItem = cartService.updateItemQuantity(cartItemId, updatedCartItem.getQuantity());
+        if (updatedItem != null) {
+            return ResponseEntity.ok(updatedItem);
+        } else {
+            return ResponseEntity.status(404).body(null); // Item not found
+        }
+    }
+
     // DELETE: Remove a specific product from the cart
     @DeleteMapping("/delete/{cartItemId}")
-    public ResponseEntity<String> removeFromCart(@PathVariable Integer cartItemId) {
+    public ResponseEntity<Void> removeFromCart(@PathVariable Integer cartItemId) {
         boolean isRemoved = cartService.removeFromCart(cartItemId);
         if (isRemoved) {
-            return ResponseEntity.ok("Item removed from cart successfully");
+            return ResponseEntity.noContent().build(); // 204 No Content for successful deletion
         } else {
-            return ResponseEntity.status(404).body("Item not found in cart");
+            return ResponseEntity.notFound().build(); // 404 Not Found
         }
     }
 }
