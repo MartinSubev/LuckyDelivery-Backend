@@ -9,7 +9,6 @@ import lombok.Setter;
 @Entity
 @Table(name = "restaurant")
 public class Restaurant {
-    // Getters and Setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -20,11 +19,15 @@ public class Restaurant {
     @Column(name = "address", nullable = false, columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "telephone", length = 20) // 🔹 New field
+    @Column(name = "telephone", length = 20)
     private String telephone;
+
+    @Column(name = "cuisine", length = 100) // Added cuisine field directly to Restaurant
+    private String cuisine;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "employee_id", nullable = false)
     private User employee;
 
+    // You might also want to add a constructor, equals(), and hashCode() methods
 }

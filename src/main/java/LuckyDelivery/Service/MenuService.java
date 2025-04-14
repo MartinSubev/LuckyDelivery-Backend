@@ -29,7 +29,6 @@ public class MenuService {
         Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
         product.setName(updatedProduct.getName());
         product.setPrice(updatedProduct.getPrice());
-        product.setCategory(updatedProduct.getCategory());
         product.setRestaurant(updatedProduct.getRestaurant());
         return productRepository.save(product);
     }
