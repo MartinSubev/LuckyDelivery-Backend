@@ -31,8 +31,9 @@ public class OrderController {
 
     // Извличане на поръчки по потребител
     @GetMapping("/user/{userId}")
-    public List<Order> getOrdersByUser(@PathVariable Long userId) {
-        return orderService.getOrdersByUser(userId);
+    public ResponseEntity<List<Order>> getOrdersByUser(@PathVariable Long userId) {
+        List<Order> orders = orderService.getOrdersByUser(userId);
+        return ResponseEntity.ok(orders);
     }
 
     // Извличане на поръчка по ID
