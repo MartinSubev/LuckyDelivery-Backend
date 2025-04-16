@@ -47,6 +47,7 @@ public class Order {
     @JoinColumn(name = "supplier_id")
     private User supplier;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private OrderStatus status = OrderStatus.PENDING;
@@ -54,13 +55,6 @@ public class Order {
     @Setter
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    public void setStatus(LuckyDelivery.Model.Enums.OrderStatus orderStatus) {
-    }
-
-
-
-
 
 
 

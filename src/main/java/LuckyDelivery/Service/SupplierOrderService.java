@@ -35,19 +35,43 @@ public class SupplierOrderService {
     @Transactional
     public boolean assignOrderToSupplier(Long orderId, Long supplierId) {
         logger.info("Attempting to assign order {} to supplier {}", orderId, supplierId);
+
+        logger.debug("Fetching order with ID: {}", orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
-        Optional<User> supplierOptional = userRepository.findByIdAndType(supplierId, "supplier");
 
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
+            logger.debug("Order found: ID={}, Status={}, Supplier={}", order.getId(), order.getStatus(), order.getSupplier());
+
             if (order.getStatus() == OrderStatus.PENDING) {
+                logger.debug("Fetching supplier with ID: {} and type 'supplier'", supplierId);
+                Optional<User> supplierOptional;
+                try {
+                    supplierOptional = userRepository.findByIdAndType(supplierId, User.UserType.supplier); // Changed argument
+                    logger.debug("Supplier optional: {}", supplierOptional);
+                } catch (Exception e) {
+                    logger.error("Error fetching supplier: {}", e.getMessage(), e);
+                    return false;
+                }
+
                 if (supplierOptional.isPresent()) {
                     User supplier = supplierOptional.get();
+                    logger.debug("Supplier found: ID={}, Type={}", supplier.getId(), supplier.getType());
+
+                    logger.debug("Setting supplier {} to order {}", supplier.getId(), order.getId());
                     order.setSupplier(supplier);
                     order.setStatus(OrderStatus.IN_TRANSIT);
-                    orderRepository.save(order);
-                    logger.info("Order {} successfully assigned to supplier {}", orderId, supplierId);
-                    return true;
+                    logger.debug("Order status set to: {}", order.getStatus());
+
+                    logger.debug("Saving order: {}", order);
+                    try {
+                        orderRepository.save(order);
+                        logger.info("Order {} successfully assigned to supplier {}", orderId, supplierId);
+                        return true;
+                    } catch (Exception e) {
+                        logger.error("Error saving order {} after assignment: {}", orderId, e.getMessage(), e);
+                        return false;
+                    }
                 } else {
                     logger.warn("Supplier with ID {} and type 'supplier' not found.", supplierId);
                     return false;
@@ -76,7 +100,7 @@ public class SupplierOrderService {
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             if (order.getStatus() == OrderStatus.IN_TRANSIT) {
-                order.setStatus(OrderStatus.DELIVERED);
+                order.setStatus(OrderStatus.DELIVERED); // This call will go to the empty method
                 orderRepository.save(order);
                 logger.info("Order {} marked as delivered.", orderId);
                 return true;
