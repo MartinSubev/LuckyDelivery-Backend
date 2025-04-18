@@ -5,13 +5,16 @@ import LuckyDelivery.Model.Restaurant;
 import LuckyDelivery.Service.MenuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/restaurants/{restaurantId}/menu")
-@CrossOrigin(origins = "*") // This can be updated as needed for your frontend
+@CrossOrigin(origins = "*")
+@PreAuthorize("hasRole('EMPLOYEE')")
+// This can be updated as needed for your frontend
 public class MenuAdminController {
 
     @Autowired
