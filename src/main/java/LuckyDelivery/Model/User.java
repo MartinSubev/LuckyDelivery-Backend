@@ -11,16 +11,15 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user")
 public class User {
-    // Getters and Setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id; // Changed from Integer to Long to match repository
 
     @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
 
     @Column(name = "password_hash", nullable = false)
-    private String password;
+    private String passwordHash; // Renamed field to match column name purpose
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
@@ -47,8 +46,12 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
     public enum UserType {
         customer, employee, supplier
     }
-
 }

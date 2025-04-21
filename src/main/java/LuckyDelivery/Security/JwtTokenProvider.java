@@ -1,42 +1,62 @@
 package LuckyDelivery.Security;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
-    private final String JWT_SECRET = "yourSecretKey"; // Тайна ключова стойност
-    private final long JWT_EXPIRATION = 86400000; // Време за валидност (1 ден в милисекунди)
 
-    // Генериране на JWT токен
+    @Value("${app.jwt-secret:yourSecretKey}")
+    private String jwtSecret;
+
+    @Value("${app.jwt-expiration-milliseconds:86400000}")
+    private long jwtExpiration;
+
+    // Generate token from username
     public String generateToken(String username) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + JWT_EXPIRATION);
+        Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS512, JWT_SECRET)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
 
-    // Извличане на username от токен
+    // Generate token from Authentication object - new method for Spring Security
+    public String generateToken(Authentication authentication) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return generateToken(userDetails.getUsername());
+    }
+
+    // Extract username from token
     public String getUsernameFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(JWT_SECRET)
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
 
         return claims.getSubject();
     }
 
-    // Валидиране на токен
+    // Validate token
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(JWT_SECRET).parseClaimsJws(token);
+            Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (SignatureException e) {
             System.out.println("Invalid JWT signature: " + e.getMessage());
@@ -50,5 +70,10 @@ public class JwtTokenProvider {
             System.out.println("JWT claims string is empty: " + e.getMessage());
         }
         return false;
+    }
+
+    private Key getSigningKey() {
+        byte[] keyBytes = jwtSecret.getBytes();
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

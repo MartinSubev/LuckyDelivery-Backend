@@ -1,60 +1,82 @@
 package LuckyDelivery.Controller;
 
-import java.util.Optional;
-import LuckyDelivery.Service.UserService;
-import LuckyDelivery.Model.User;
 import LuckyDelivery.Model.DTO.LoginRequest;
 import LuckyDelivery.Model.DTO.RegisterRequest;
+import LuckyDelivery.Model.User;
 import LuckyDelivery.Security.JwtTokenProvider;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import LuckyDelivery.Service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserService userService; // Сервизен слой
-    private final BCryptPasswordEncoder passwordEncoder; // За хеширане на пароли
-    private final JwtTokenProvider jwtTokenProvider; // За създаване на токен (ако използваме JWT)
+    private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody RegisterRequest registerRequest) {
-        // Проверка дали има такъв потребител
-        if (userService.existsByUsername(registerRequest.getUsername())) {
-            return ResponseEntity.badRequest().body("Username is already taken!");
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+        try {
+            User user = userService.registerUser(
+                    registerRequest.getUsername(),
+                    registerRequest.getEmail(),
+                    registerRequest.getPassword(),
+                    registerRequest.getName(),
+                    registerRequest.getType()
+            );
+
+            String token = jwtTokenProvider.generateToken(user.getUsername());
+            return ResponseEntity.ok(Map.of("token", token, "message", "User registered successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Registration failed. Please try again."));
         }
-
-        if (userService.existsByEmail(registerRequest.getEmail())) {
-            return ResponseEntity.badRequest().body("Email is already in use!");
-        }
-
-        // Създаване на нов User обект
-        User user = new User();
-        user.setUsername(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setName(registerRequest.getName());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword())); // Хеширане на паролата
-        user.setType(registerRequest.getType());
-
-        // Запазване на потребителя
-        userService.saveUser(user);
-
-        return ResponseEntity.status(201).body("User registered successfully!");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody LoginRequest loginRequest) {
-        Optional<User> optionalUser = userService.loginUser(loginRequest.getUsername(), loginRequest.getPassword());
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.badRequest().body("Invalid username or password!");
+    public ResponseEntity<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            Optional<User> userOpt = userService.loginUser(
+                    loginRequest.getUsername(),
+                    loginRequest.getPassword()
+            );
+
+            if (userOpt.isPresent()) {
+                String token = jwtTokenProvider.generateToken(userOpt.get().getUsername());
+                return ResponseEntity.ok(Map.of("token", token, "user", userOpt.get()));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid username or password"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Login failed. Please try again."));
         }
+    }
 
-        User user = optionalUser.get();
-        String token = jwtTokenProvider.generateToken(user.getUsername());
-
-        return ResponseEntity.ok(token);
+    // Handle validation errors
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 }
