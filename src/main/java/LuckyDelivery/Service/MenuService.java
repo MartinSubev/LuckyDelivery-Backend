@@ -26,9 +26,12 @@ public class MenuService {
 
     // Update an existing product
     public Product updateProduct(Integer id, Product updatedProduct) {
+        System.out.println("Service received update request for productId: " + id);
+        System.out.println("Updated product data in service: " + updatedProduct);
         Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
         product.setName(updatedProduct.getName());
         product.setPrice(updatedProduct.getPrice());
+        product.setDescription(updatedProduct.getDescription()); // Make sure you are updating the description
         product.setRestaurant(updatedProduct.getRestaurant());
         return productRepository.save(product);
     }

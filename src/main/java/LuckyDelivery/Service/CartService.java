@@ -39,11 +39,14 @@ public class CartService {
 
     // Remove a product from the cart
     public boolean removeFromCart(Integer cartItemId) {
+        System.out.println("CartService received request to delete cartItemId: " + cartItemId);
         if (cartRepository.existsById(cartItemId)) {
+            System.out.println("Cart item with ID " + cartItemId + " found. Deleting...");
             cartRepository.deleteById(cartItemId);
             return true;
         } else {
-            return false;  // Item not found
+            System.out.println("Cart item with ID " + cartItemId + " not found.");
+            return false;
         }
     }
 }

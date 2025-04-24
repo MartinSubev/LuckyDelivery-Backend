@@ -14,7 +14,6 @@ import java.util.List;
 @RequestMapping("/api/admin/restaurants/{restaurantId}/menu")
 @CrossOrigin(origins = "*")
 @PreAuthorize("hasRole('EMPLOYEE')")
-// This can be updated as needed for your frontend
 public class MenuAdminController {
 
     @Autowired
@@ -30,8 +29,8 @@ public class MenuAdminController {
     // POST: Create a new product for the restaurant menu (Admin)
     @PostMapping
     public ResponseEntity<Product> createProduct(@PathVariable Integer restaurantId, @RequestBody Product product) {
-        product.setRestaurant(new Restaurant()); // Set the restaurant if necessary
-        product.getRestaurant().setId(restaurantId); // Make sure to associate the product with the restaurant ID
+        product.setRestaurant(new Restaurant());
+        product.getRestaurant().setId(restaurantId);
         Product createdProduct = menuService.createProduct(product);
         return ResponseEntity.status(201).body(createdProduct);
     }
@@ -39,16 +38,19 @@ public class MenuAdminController {
     // PUT: Update a specific product for a restaurant (Admin)
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Integer restaurantId, @PathVariable Integer id, @RequestBody Product updatedProduct) {
-        updatedProduct.setRestaurant(new Restaurant()); // Set the restaurant if necessary
-        updatedProduct.getRestaurant().setId(restaurantId); // Ensure product is linked to the restaurant
+        System.out.println("Received update request for restaurantId: " + restaurantId + ", productId: " + id);
+        System.out.println("Updated product data: " + updatedProduct);
+        updatedProduct.setRestaurant(new Restaurant());
+        updatedProduct.getRestaurant().setId(restaurantId);
         Product product = menuService.updateProduct(id, updatedProduct);
         return ResponseEntity.ok(product);
     }
 
     // DELETE: Delete a product from the menu (Admin)
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable Integer id) {
-        menuService.deleteProduct(id);
+    public ResponseEntity<String> deleteProduct(@PathVariable Integer restaurantId, @PathVariable Integer id) {
+        // You might want to verify if the product belongs to this restaurant in the service layer
+        menuService.deleteProduct(id); // Consider updating the service method if needed
         return ResponseEntity.ok("Product deleted successfully");
     }
 }
