@@ -47,7 +47,7 @@ public class SupplierOrderService {
                 logger.debug("Fetching supplier with ID: {} and type 'supplier'", supplierId);
                 Optional<User> supplierOptional;
                 try {
-                    supplierOptional = userRepository.findByIdAndType(supplierId, User.UserType.SUPPLIER); // Changed argument
+                    supplierOptional = userRepository.findByIdAndType(supplierId, User.UserType.supplier); // Changed argument
                     logger.debug("Supplier optional: {}", supplierOptional);
                 } catch (Exception e) {
                     logger.error("Error fetching supplier: {}", e.getMessage(), e);

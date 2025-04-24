@@ -43,6 +43,6 @@ public class User {
     }
 
     public enum UserType {
-        CUSTOMER, EMPLOYEE, SUPPLIER
+        customer, employee, supplier
     }
 }

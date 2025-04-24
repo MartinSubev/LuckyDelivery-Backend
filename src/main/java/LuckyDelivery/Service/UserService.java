@@ -22,11 +22,11 @@ public class UserService {
 
     public User registerUser(String username, String email, String password, String name, User.UserType type) {
         if (userRepository.existsByUsername(username)) {
-            throw new UserAlreadyExistsException("Username already exists!");
+            throw new UserAlreadyExistsException("Username '" + username + "' already exists!");
         }
 
         if (userRepository.existsByEmail(email)) {
-            throw new UserAlreadyExistsException("Email already exists!");
+            throw new UserAlreadyExistsException("Email '" + email + "' already exists!");
         }
 
         User user = new User();
@@ -39,24 +39,24 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    // Keep these if needed elsewhere in your application
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null);
     }
 
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+    public Optional<User> findById(Long id) { // New method for finding User by ID
+        return userRepository.findById(id);
     }
 
-    public Optional<User> loginUser(String username, String password) {
-        Optional<User> optionalUser = userRepository.findByUsername(username);
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            if (passwordEncoder.matches(password, user.getPasswordHash())) {
-                return optionalUser;
-            }
+
+
+
+    public User loginUser(String username, String password) {
+        User user = findByUsername(username);
+
+        if (user != null && passwordEncoder.matches(password, user.getPasswordHash())) { // Correct usage
+            return user;
         }
-        return Optional.empty();
+        return null;
     }
 
 
