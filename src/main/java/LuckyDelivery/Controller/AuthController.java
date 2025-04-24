@@ -5,7 +5,7 @@ import LuckyDelivery.Model.DTO.RegisterRequest;
 import LuckyDelivery.Model.DTO.AuthResponse;
 import org.springframework.security.core.AuthenticationException;
 import LuckyDelivery.Model.User;
-import LuckyDelivery.Security.JwtUtil; // Import JwtUtil
+import LuckyDelivery.Security.JwtUtil;
 import LuckyDelivery.Service.UserService;
 import LuckyDelivery.Service.UserService.UserAlreadyExistsException;
 import jakarta.validation.Valid;
@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder; // Import PasswordEncoder
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,23 +25,28 @@ public class AuthController {
 
     private final UserService userService;
     @Autowired
-    private AuthenticationManager authenticationManager; // Inject AuthenticationManager
+    private AuthenticationManager authenticationManager;
     @Autowired
-    private JwtUtil jwtUtil; // Inject JwtUtil
+    private JwtUtil jwtUtil;
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Inject PasswordEncoder
 
 
     @Autowired
     public AuthController(UserService userService) {
         this.userService = userService;
+
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
         try {
+            String encodedPassword = passwordEncoder.encode(registerRequest.getPassword()); // Encode the password
+
             User registeredUser = userService.registerUser(
                     registerRequest.getUsername(),
                     registerRequest.getEmail(),
-                    registerRequest.getPassword(),
+                    encodedPassword, // Use the encoded password
                     registerRequest.getName(),
                     registerRequest.getType()
             );
@@ -57,12 +63,12 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
             String token = jwtUtil.generateToken(request.getUsername());
-            return ResponseEntity.ok(new AuthResponse(token)); // Return 200 OK with token
 
+
+            return ResponseEntity.ok(new AuthResponse(token));
         } catch (AuthenticationException e) {
-            System.err.println("Authentication failed: " + e.getMessage()); // Log the detailed message!
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null)); // Return 401 Unauthorized
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(null));
         }
     }
-
 }
