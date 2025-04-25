@@ -42,6 +42,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/restaurants/**").permitAll() // Allow all to view restaurants? Adjust as needed
                         .requestMatchers("/api/orders/**").hasRole("CUSTOMER") // Assuming only customers can place orders
                         .requestMatchers("/api/admin/**").hasRole("EMPLOYEE") // Allow access to /api/admin/** for employees
+                        .requestMatchers("/api/cart/delete/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/cart/update/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/cart/add").hasRole("CUSTOMER") // Add this line
+                        .requestMatchers("/api/supplier/**").hasRole("SUPPLIER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

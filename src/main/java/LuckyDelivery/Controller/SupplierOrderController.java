@@ -14,8 +14,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/supplier")
 @CrossOrigin(origins = "*")
-@PreAuthorize("hasRole('supplier')")
-
+@PreAuthorize("hasRole('SUPPLIER')")
 public class SupplierOrderController {
 
     private static final Logger logger = LoggerFactory.getLogger(SupplierOrderController.class);
@@ -27,7 +26,6 @@ public class SupplierOrderController {
         this.supplierOrderService = supplierOrderService;
     }
 
-    // Get all available orders for a supplier
     @GetMapping("/available")
     public ResponseEntity<List<Order>> getAvailableOrders() {
         logger.info("GET /api/supplier/available");
@@ -36,9 +34,9 @@ public class SupplierOrderController {
     }
 
     @PutMapping("/claim/{orderId}")
-    public ResponseEntity<String> claimOrder(@PathVariable Long orderId, @RequestParam Long supplierId) {
-        logger.info("PUT /api/supplier/claim/{}?supplierId={}", orderId, supplierId);
-        boolean isClaimed = supplierOrderService.assignOrderToSupplier(orderId, supplierId);
+    public ResponseEntity<String> claimOrder(@PathVariable Long orderId) { // Removed @RequestParam Long supplierId
+        logger.info("PUT /api/supplier/claim/{}", orderId);
+        boolean isClaimed = supplierOrderService.assignOrderToSupplier(orderId);
         if (isClaimed) {
             return ResponseEntity.ok("Order successfully claimed");
         } else {
@@ -47,9 +45,9 @@ public class SupplierOrderController {
     }
 
     @GetMapping("/collected")
-    public ResponseEntity<List<Order>> getCollectedOrders(@RequestParam Long supplierId) {
-        logger.info("GET /api/supplier/collected?supplierId={}", supplierId);
-        List<Order> orders = supplierOrderService.getCollectedOrders(supplierId);
+    public ResponseEntity<List<Order>> getCollectedOrders() { // Removed @RequestParam Long supplierId
+        logger.info("GET /api/supplier/collected");
+        List<Order> orders = supplierOrderService.getCollectedOrders();
         return ResponseEntity.ok(orders);
     }
 
@@ -65,9 +63,9 @@ public class SupplierOrderController {
     }
 
     @GetMapping("/completed")
-    public ResponseEntity<List<Order>> getCompletedOrders(@RequestParam Long supplierId) {
-        logger.info("GET /api/supplier/completed?supplierId={}", supplierId);
-        List<Order> orders = supplierOrderService.getCompletedOrders(supplierId);
+    public ResponseEntity<List<Order>> getCompletedOrders() { // Removed @RequestParam Long supplierId
+        logger.info("GET /api/supplier/completed");
+        List<Order> orders = supplierOrderService.getCompletedOrders();
         return ResponseEntity.ok(orders);
     }
 }
