@@ -49,11 +49,12 @@ public class CartController {
     // DELETE: Remove a specific product from the cart
     @DeleteMapping("/delete/{cartItemId}")
     public ResponseEntity<Void> removeFromCart(@PathVariable Integer cartItemId) {
+        System.out.println("Received delete request for cartItemId: " + cartItemId);
         boolean isRemoved = cartService.removeFromCart(cartItemId);
         if (isRemoved) {
-            return ResponseEntity.noContent().build(); // 204 No Content for successful deletion
+            return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.notFound().build(); // 404 Not Found
+            return ResponseEntity.notFound().build();
         }
     }
 }

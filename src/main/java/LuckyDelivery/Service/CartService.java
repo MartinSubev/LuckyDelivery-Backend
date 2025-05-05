@@ -1,8 +1,13 @@
 package LuckyDelivery.Service;
 
 import LuckyDelivery.Model.Cart;
+import LuckyDelivery.Model.User;
 import LuckyDelivery.Repository.CartRepository;
+import LuckyDelivery.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,6 +18,9 @@ public class CartService {
 
     @Autowired
     private CartRepository cartRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     // Get all cart items for a user
     public List<Cart> getCartItemsByUserId(Integer userId) {
@@ -39,11 +47,37 @@ public class CartService {
 
     // Remove a product from the cart
     public boolean removeFromCart(Integer cartItemId) {
-        if (cartRepository.existsById(cartItemId)) {
-            cartRepository.deleteById(cartItemId);
-            return true;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            String username = userDetails.getUsername();
+
+            Optional<User> userOptional = userRepository.findByUsername(username);
+            if (userOptional.isPresent()) {
+                User user = userOptional.get();
+
+                Optional<Cart> cartItemOptional = cartRepository.findById(cartItemId);
+                if (cartItemOptional.isPresent()) {
+                    Cart cartItem = cartItemOptional.get();
+                    if (cartItem.getUser().getId().equals(user.getId())) { // Corrected line
+                        System.out.println("Cart item with ID " + cartItemId + " belongs to user " + username + ". Deleting...");
+                        cartRepository.deleteById(cartItemId);
+                        return true;
+                    } else {
+                        System.out.println("Cart item with ID " + cartItemId + " does not belong to user " + username + ". Forbidden.");
+                        return false;
+                    }
+                } else {
+                    System.out.println("Cart item with ID " + cartItemId + " not found.");
+                    return false;
+                }
+            } else {
+                System.out.println("Could not retrieve user details for " + username);
+                return false;
+            }
         } else {
-            return false;  // Item not found
+            System.out.println("No authenticated user found.");
+            return false;
         }
     }
 }

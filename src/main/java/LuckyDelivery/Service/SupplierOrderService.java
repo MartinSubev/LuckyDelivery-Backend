@@ -4,14 +4,17 @@ import LuckyDelivery.Model.Enums.OrderStatus;
 import LuckyDelivery.Model.Order;
 import LuckyDelivery.Model.User;
 import LuckyDelivery.Repository.OrderRepository;
-import LuckyDelivery.Repository.UserRepository;
+import LuckyDelivery.Repository.UserRepository; // Make sure to inject this
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -23,89 +26,92 @@ public class SupplierOrderService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private UserRepository userRepository; // Inject UserRepository
 
-    // Get all available orders (PENDING status and no supplier assigned)
-    public List<Order> getAvailableOrders() {
-        logger.info("Fetching available orders (PENDING and no supplier).");
-        return orderRepository.findByStatusAndSupplierIsNull(OrderStatus.PENDING);
+    public List<Order> getCollectedOrders() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getPrincipal() instanceof Map) {
+            Map<String, Object> principal = (Map<String, Object>) authentication.getPrincipal();
+            if (principal.containsKey("userId")) {
+                String userIdString = (String) principal.get("userId");
+                try {
+                    Long supplierId = Long.parseLong(userIdString);
+                    logger.info("Fetching collected orders for supplier ID from JWT principal: {}", supplierId);
+                    return orderRepository.findBySupplierIdAndStatus(supplierId, OrderStatus.IN_TRANSIT);
+                } catch (NumberFormatException e) {
+                    logger.warn("Invalid userId format in JWT principal: {}", userIdString);
+                    return Collections.emptyList();
+                }
+            } else {
+                logger.warn("userId not found in JWT principal.");
+                return Collections.emptyList();
+            }
+        } else {
+            logger.warn("Authentication principal is not the expected Map type.");
+            return Collections.emptyList();
+        }
     }
 
-    // This method allows a supplier to claim an order
-    @Transactional
-    public boolean assignOrderToSupplier(Long orderId, Long supplierId) {
-        logger.info("Attempting to assign order {} to supplier {}", orderId, supplierId);
-
-        logger.debug("Fetching order with ID: {}", orderId);
-        Optional<Order> orderOptional = orderRepository.findById(orderId);
-
-        if (orderOptional.isPresent()) {
-            Order order = orderOptional.get();
-            logger.debug("Order found: ID={}, Status={}, Supplier={}", order.getId(), order.getStatus(), order.getSupplier());
-
-            if (order.getStatus() == OrderStatus.PENDING) {
-                logger.debug("Fetching supplier with ID: {} and type 'supplier'", supplierId);
-                Optional<User> supplierOptional;
+    public boolean assignOrderToSupplier(Long orderId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Map) {
+            Map<String, Object> principal = (Map<String, Object>) authentication.getPrincipal();
+            if (principal.containsKey("userId")) {
+                String userIdString = (String) principal.get("userId");
                 try {
-                    supplierOptional = userRepository.findByIdAndType(supplierId, User.UserType.supplier); // Changed argument
-                    logger.debug("Supplier optional: {}", supplierOptional);
-                } catch (Exception e) {
-                    logger.error("Error fetching supplier: {}", e.getMessage(), e);
-                    return false;
-                }
-
-                if (supplierOptional.isPresent()) {
-                    User supplier = supplierOptional.get();
-                    logger.debug("Supplier found: ID={}, Type={}", supplier.getId(), supplier.getType());
-
-                    logger.debug("Setting supplier {} to order {}", supplier.getId(), order.getId());
-                    order.setSupplier(supplier);
-                    order.setStatus(OrderStatus.IN_TRANSIT);
-                    logger.debug("Order status set to: {}", order.getStatus());
-
-                    logger.debug("Saving order: {}", order);
-                    try {
-                        orderRepository.save(order);
-                        logger.info("Order {} successfully assigned to supplier {}", orderId, supplierId);
-                        return true;
-                    } catch (Exception e) {
-                        logger.error("Error saving order {} after assignment: {}", orderId, e.getMessage(), e);
+                    Long supplierId = Long.parseLong(userIdString);
+                    logger.info("Attempting to assign order {} to supplier ID from JWT: {}", orderId, supplierId);
+                    Optional<Order> orderOptional = orderRepository.findById(orderId);
+                    if (orderOptional.isPresent()) {
+                        Order order = orderOptional.get();
+                        if (order.getStatus() == OrderStatus.PENDING && order.getSupplier() == null) {
+                            Optional<User> supplierOptional = userRepository.findById((long) supplierId); // Fetch User entity
+                            if (supplierOptional.isPresent()) {
+                                order.setSupplier(supplierOptional.get()); // Set the User entity
+                                order.setStatus(OrderStatus.IN_TRANSIT);
+                                orderRepository.save(order);
+                                return true;
+                            } else {
+                                logger.warn("Supplier with ID {} not found.", supplierId);
+                                return false;
+                            }
+                        } else if (order.getSupplier() != null) {
+                            logger.warn("Order {} is already assigned to supplier {}", orderId, order.getSupplier().getId());
+                            return false;
+                        } else {
+                            logger.warn("Order {} is not in PENDING status.", orderId);
+                            return false;
+                        }
+                    } else {
+                        logger.warn("Order with ID {} not found.", orderId);
                         return false;
                     }
-                } else {
-                    logger.warn("Supplier with ID {} and type 'supplier' not found.", supplierId);
+                } catch (NumberFormatException e) {
+                    logger.warn("Invalid userId format in JWT principal for claiming order: {}", userIdString);
                     return false;
                 }
             } else {
-                logger.warn("Order {} is not PENDING. Current status: {}", orderId, order.getStatus());
+                logger.warn("userId not found in JWT principal for claiming order.");
                 return false;
             }
         } else {
-            logger.warn("Order with ID {} not found.", orderId);
+            logger.warn("Authentication principal is not the expected Map type for claiming order.");
             return false;
         }
     }
 
-    // Get all collected orders for a specific supplier (IN_TRANSIT status)
-    public List<Order> getCollectedOrders(Long supplierId) {
-        logger.info("Fetching collected orders for supplier {}", supplierId);
-        return orderRepository.findBySupplierIdAndStatus(supplierId, OrderStatus.IN_TRANSIT);
-    }
-
-    // Method to mark an order as "DELIVERED"
-    @Transactional
     public boolean markOrderAsDelivered(Long orderId) {
         logger.info("Attempting to mark order {} as delivered.", orderId);
         Optional<Order> orderOptional = orderRepository.findById(orderId);
         if (orderOptional.isPresent()) {
             Order order = orderOptional.get();
             if (order.getStatus() == OrderStatus.IN_TRANSIT) {
-                order.setStatus(OrderStatus.DELIVERED); // This call will go to the empty method
+                order.setStatus(OrderStatus.DELIVERED);
                 orderRepository.save(order);
-                logger.info("Order {} marked as delivered.", orderId);
                 return true;
             } else {
-                logger.warn("Order {} is not IN_TRANSIT. Current status: {}", orderId, order.getStatus());
+                logger.warn("Order {} is not in IN_TRANSIT status.", orderId);
                 return false;
             }
         } else {
@@ -114,9 +120,32 @@ public class SupplierOrderService {
         }
     }
 
-    // Get all completed orders for a specific supplier (DELIVERED status)
-    public List<Order> getCompletedOrders(Long supplierId) {
-        logger.info("Fetching completed orders for supplier {}", supplierId);
-        return orderRepository.findBySupplierIdAndStatus(supplierId, OrderStatus.DELIVERED);
+    public List<Order> getAvailableOrders() {
+        logger.info("Fetching available orders (PENDING and no supplier).");
+        return orderRepository.findByStatusAndSupplierIsNull(OrderStatus.PENDING); // Corrected to findBySupplierIsNull
+    }
+
+    public List<Order> getCompletedOrders() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Map) {
+            Map<String, Object> principal = (Map<String, Object>) authentication.getPrincipal();
+            if (principal.containsKey("userId")) {
+                String userIdString = (String) principal.get("userId");
+                try {
+                    Long supplierId = Long.parseLong(userIdString);
+                    logger.info("Fetching completed orders for supplier ID from JWT principal: {}", supplierId);
+                    return orderRepository.findBySupplierIdAndStatus(supplierId, OrderStatus.DELIVERED);
+                } catch (NumberFormatException e) {
+                    logger.warn("Invalid userId format in JWT principal for completed orders: {}", userIdString);
+                    return Collections.emptyList();
+                }
+            } else {
+                logger.warn("userId not found in JWT principal for completed orders.");
+                return Collections.emptyList();
+            }
+        } else {
+            logger.warn("Authentication principal is not the expected Map type for completed orders.");
+            return Collections.emptyList();
+        }
     }
 }

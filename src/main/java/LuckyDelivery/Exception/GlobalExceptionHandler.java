@@ -53,6 +53,7 @@ public class GlobalExceptionHandler {
     // Общ handler за всякакви други exceptions
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGenericException(Exception ex) {
+        ex.printStackTrace();
         return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "Вътрешна грешка в сървъра.");
     }
 
